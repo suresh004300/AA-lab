@@ -1,0 +1,67 @@
+class FordFulkerson:
+    def __init__(self, graph):
+        self.graph = graph  # Graph should be a capacity matrix
+        self.n = len(graph)  # Number of vertices
+        self.residual_graph = [row[:] for row in graph]  # Copy of the graph for residuals
+        self.parent = [-1] * self.n
+
+    def _dfs(self, source, sink, visited):
+        # Depth-first search to find an augmenting path in the residual graph
+        stack = [source]
+        visited[source] = True
+        while stack:
+            u = stack.pop()
+            for v, capacity in enumerate(self.residual_graph[u]):
+                if not visited[v] and capacity > 0:
+                    stack.append(v)
+                    visited[v] = True
+                    self.parent[v] = u
+                    if v == sink:
+                        return True
+        return False
+
+    def find_max_flow(self, source, sink):
+        max_flow = 0
+        while True:
+            # Reset visited array and find path using DFS
+            visited = [False] * self.n
+            if not self._dfs(source, sink, visited):
+                break
+
+            # Find the bottleneck capacity in the path found
+            path_flow = float('Inf')
+            v = sink
+            while v != source:
+                u = self.parent[v]
+                path_flow = min(path_flow, self.residual_graph[u][v])
+                v = u
+
+            # Update residual capacities of the edges and reverse edges along the path
+            v = sink
+            while v != source:
+                u = self.parent[v]
+                self.residual_graph[u][v] -= path_flow
+                self.residual_graph[v][u] += path_flow
+                v = u
+
+            max_flow += path_flow
+
+        return max_flow
+
+# Given input graph
+graph = [
+    [0, 10, 8, 0, 0, 0],
+    [0, 0, 5, 3, 0, 0],
+    [0, 4, 0, 0, 10, 0],
+    [0, 0, 7, 0, 6, 3],
+    [0, 0, 0, 10, 0, 14],
+    [0, 0, 0, 0, 0, 0]
+]
+
+ff = FordFulkerson(graph)
+source = 0  # Starting node
+sink = 5    # Ending node
+max_flow = ff.find_max_flow(source, sink)
+print("The maximum possible flow is:", max_flow)
+output:
+The maximum possible flow is: 17
