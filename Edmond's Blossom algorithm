@@ -1,0 +1,105 @@
+from collections import deque
+
+class BlossomAlgorithm:
+    def __init__(self, n):
+        # Initialize graph with `n` nodes
+        self.n = n
+        self.graph = [[] for _ in range(n)]
+        self.matching = [-1] * n
+        self.parent = [-1] * n
+        self.base = list(range(n))
+        self.used = [False] * n
+
+    def add_edge(self, u, v):
+        self.graph[u].append(v)
+        self.graph[v].append(u)
+
+    def find_lca(self, u, v):
+        # Find the least common ancestor of nodes `u` and `v` in the augmenting path tree
+        path = set()
+        while True:
+            u = self.base[u]
+            path.add(u)
+            if self.matching[u] == -1:
+                break
+            u = self.parent[self.matching[u]]
+        
+        while True:
+            v = self.base[v]
+            if v in path:
+                return v
+            v = self.parent[self.matching[v]]
+
+    def mark_path(self, u, lca, v):
+        # Mark the path to keep track of visited nodes
+        while self.base[u] != lca:
+            self.parent[u] = v
+            v = self.matching[u]
+            self.used[u] = True
+            self.used[v] = True
+            u = self.parent[v]
+
+    def contract_blossom(self, u, v):
+        # Contract a blossom (odd-length cycle)
+        lca = self.find_lca(u, v)
+        self.used = [False] * self.n
+
+        self.mark_path(u, lca, v)
+        self.mark_path(v, lca, u)
+
+        for i in range(self.n):
+            if self.used[self.base[i]]:
+                self.base[i] = lca
+
+    def bfs(self, start):
+        # Breadth-first search to find an augmenting path
+        self.parent = [-1] * self.n
+        self.used = [False] * self.n
+        queue = deque([start])
+        self.used[start] = True
+        
+        while queue:
+            u = queue.popleft()
+            for v in self.graph[u]:
+                if self.base[u] == self.base[v] or self.matching[u] == v:
+                    continue
+                if v == start or (self.matching[v] != -1 and self.parent[self.matching[v]] != -1):
+                    self.contract_blossom(u, v)
+                elif self.parent[v] == -1:
+                    self.parent[v] = u
+                    if self.matching[v] == -1:
+                        return v
+                    queue.append(self.matching[v])
+                    self.used[self.matching[v]] = True
+        return -1
+
+    def augment_path(self, start, end):
+        # Augment the path and update the matching
+        while end != -1:
+            v = self.parent[end]
+            w = self.matching[v]
+            self.matching[end] = v
+            self.matching[v] = end
+            end = w
+
+    def find_max_matching(self):
+        # Main function to find maximum matching
+        for u in range(self.n):
+            if self.matching[u] == -1:
+                v = self.bfs(u)
+                if v != -1:
+                    self.augment_path(u, v)
+        
+        return self.matching
+
+# Usage example
+n = 4  # Number of nodes
+edges = [(0, 1), (1, 2), (2, 3), (3, 0), (1, 3)]
+blossom = BlossomAlgorithm(n)
+for u, v in edges:
+    blossom.add_edge(u, v)
+
+matching = blossom.find_max_matching()
+print("Matching:", matching)
+output :
+Matching: [1, 0, 3, 2]
